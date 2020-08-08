@@ -37,26 +37,55 @@ function register_rest_route( $namespace, $route, $args = array(), $override = f
 		 * and namespace indexes. If you really need to register a
 		 * non-namespaced route, call `WP_REST_Server::register_route` directly.
 		 */
-		_doing_it_wrong( 'register_rest_route', __( 'Routes must be namespaced with plugin or theme name and version.' ), '4.4.0' );
+		_doing_it_wrong(
+			__FUNCTION__,
+			sprintf(
+				/* translators: 1: string value of the namespace, 2: string value of the route */
+				__( 'Routes must be namespaced with plugin or theme name and version. Instead there seems to be an empty namespace \'%1$s\' for route \'%2$s\'.' ),
+				'<code>' . $namespace . '</code>',
+				'<code>' . $route . '</code>'
+			),
+			'4.4.0'
+		);
 		return false;
 	} elseif ( empty( $route ) ) {
-		_doing_it_wrong( 'register_rest_route', __( 'Route must be specified.' ), '4.4.0' );
+		_doing_it_wrong(
+			__FUNCTION__,
+			sprintf(
+				/* translators: 1: string value of the namespace, 2: string value of the route */
+				__( 'Route must be specified. Instead within the namespace \'%1$s\', there seems to be an empty route \'%2$s\'.' ),
+				'<code>' . $namespace . '</code>',
+				'<code>' . $route . '</code>'
+			),
+			'4.4.0'
+		);
 		return false;
 	}
 
 	$clean_namespace = trim( $namespace, '/' );
 
 	if ( $clean_namespace !== $namespace ) {
-		_doing_it_wrong( __FUNCTION__, __( 'Namespace must not start or end with a slash.' ), '5.4.2' );
+		_doing_it_wrong(
+			__FUNCTION__,
+			sprintf(
+				/* translators: 1: string value of the namespace, 2: string value of the route */
+				__( 'Namespace must not start or end with a slash. Instead namespace \'%1$s\' for route \'%2$s\' seems to contain a slash.' ),
+				'<code>' . $namespace . '</code>',
+				'<code>' . $route . '</code>'
+			),
+			'5.4.2'
+		);
 	}
 
 	if ( ! did_action( 'rest_api_init' ) ) {
 		_doing_it_wrong(
-			'register_rest_route',
+			__FUNCTION__,
 			sprintf(
-				/* translators: %s: rest_api_init */
-				__( 'REST API routes must be registered on the %s action.' ),
-				'<code>rest_api_init</code>'
+				/* translators: 1: rest_api_init, 2: string value of the namespace, 3: string value of the route */
+				__( 'REST API routes must be registered on the %1$s action. Instead route \'%3$s\' with namespace \'%2$s\' was not registered on this action.' ),
+				'<code>rest_api_init</code>',
+				'<code>' . $namespace . '</code>',
+				'<code>' . $route . '</code>'
 			),
 			'5.1.0'
 		);
@@ -1849,7 +1878,7 @@ function rest_sanitize_value_from_schema( $value, $args, $param = '' ) {
 		_doing_it_wrong(
 			__FUNCTION__,
 			/* translators: 1. Parameter. 2. The list of allowed types. */
-			wp_sprintf( __( 'The "type" schema keyword for %1$s can only be on of the built-in types: %2$l.' ), $param, $allowed_types ),
+			wp_sprintf( __( 'The "type" schema keyword for %1$s can only be one of the built-in types: %2$l.' ), $param, $allowed_types ),
 			'5.5.0'
 		);
 	}
