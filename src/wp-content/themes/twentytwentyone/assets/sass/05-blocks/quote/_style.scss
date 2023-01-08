@@ -3,7 +3,6 @@
 
 	&:before {
 		content: "\201C";
-		font-size: var(--quote--font-size);
 		line-height: var(--quote--line-height);
 		left: 8px;
 	}
@@ -136,3 +135,19 @@
 		}
 	}
 }
+
+/* Ony apply the default font size if the user has not selected a size. */
+blockquote:not([class*="font-size"]) {
+	font-size: var(--quote--font-size);
+
+	&:before {
+		font-size: var(--quote--font-size);
+	}
+
+	.wp-block-quote__citation,
+	cite,
+	footer {
+		font-size: var(--global--font-size-xs);
+	}
+}
+
