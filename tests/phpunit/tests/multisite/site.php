@@ -1884,7 +1884,7 @@ if ( is_multisite() ) :
 						'home'        => 'http://uninitialized.org',
 						'siteurl'     => 'http://uninitialized.org',
 						'admin_email' => '',
-						'blog_public' => '1',
+						'blog_public' => 1,
 					),
 					array(),
 				),

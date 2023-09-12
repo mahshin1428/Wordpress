@@ -423,7 +423,7 @@ class Tests_User_Capabilities extends WP_UnitTestCase {
 		$caps = $this->getPrimitiveCapsAndRoles();
 
 		// `manage_links` is a special case.
-		$this->assertSame( '0', get_option( 'link_manager_enabled' ) );
+		$this->assertSame( 0, get_option( 'link_manager_enabled' ) );
 		// `unfiltered_upload` is a special case.
 		$this->assertFalse( defined( 'ALLOW_UNFILTERED_UPLOADS' ) );
 
@@ -716,7 +716,7 @@ class Tests_User_Capabilities extends WP_UnitTestCase {
 			'manage_links' => array( 'administrator', 'editor' ),
 		);
 
-		$this->assertSame( '0', get_option( 'link_manager_enabled' ) );
+		$this->assertSame( 0, get_option( 'link_manager_enabled' ) );
 
 		// No-one should have access to the link manager by default.
 		foreach ( self::$users as $role => $user ) {

@@ -52,12 +52,16 @@ function wp_get_db_schema( $scope = 'all', $blog_id = null ) {
 	 */
 	$max_index_length = 191;
 
+	$enum_col     = "'" . implode( "','", array_map( 'esc_sql', wp_get_database_types() ) ) . "'";
+	$default_enum = esc_sql( wp_get_database_default_type() );
+
 	// Blog-specific tables.
 	$blog_tables = "CREATE TABLE $wpdb->termmeta (
 	meta_id bigint(20) unsigned NOT NULL auto_increment,
 	term_id bigint(20) unsigned NOT NULL default '0',
 	meta_key varchar(255) default NULL,
 	meta_value longtext,
+	meta_type enum($enum_col) default '$default_enum',
 	PRIMARY KEY  (meta_id),
 	KEY term_id (term_id),
 	KEY meta_key (meta_key($max_index_length))
@@ -94,6 +98,7 @@ CREATE TABLE $wpdb->commentmeta (
 	comment_id bigint(20) unsigned NOT NULL default '0',
 	meta_key varchar(255) default NULL,
 	meta_value longtext,
+	meta_type enum($enum_col) default '$default_enum',
 	PRIMARY KEY  (meta_id),
 	KEY comment_id (comment_id),
 	KEY meta_key (meta_key($max_index_length))
@@ -142,6 +147,7 @@ CREATE TABLE $wpdb->options (
 	option_id bigint(20) unsigned NOT NULL auto_increment,
 	option_name varchar(191) NOT NULL default '',
 	option_value longtext NOT NULL,
+	option_type enum($enum_col) default '$default_enum',
 	autoload varchar(20) NOT NULL default 'yes',
 	PRIMARY KEY  (option_id),
 	UNIQUE KEY option_name (option_name),
@@ -152,6 +158,7 @@ CREATE TABLE $wpdb->postmeta (
 	post_id bigint(20) unsigned NOT NULL default '0',
 	meta_key varchar(255) default NULL,
 	meta_value longtext,
+	meta_type enum($enum_col) default '$default_enum',
 	PRIMARY KEY  (meta_id),
 	KEY post_id (post_id),
 	KEY meta_key (meta_key($max_index_length))
@@ -231,6 +238,7 @@ CREATE TABLE $wpdb->posts (
 	user_id bigint(20) unsigned NOT NULL default '0',
 	meta_key varchar(255) default NULL,
 	meta_value longtext,
+	meta_type enum($enum_col) default '$default_enum',
 	PRIMARY KEY  (umeta_id),
 	KEY user_id (user_id),
 	KEY meta_key (meta_key($max_index_length))
@@ -266,6 +274,7 @@ CREATE TABLE $wpdb->blogmeta (
 	blog_id bigint(20) NOT NULL default '0',
 	meta_key varchar(255) default NULL,
 	meta_value longtext,
+	meta_type enum($enum_col) default '$default_enum',
 	PRIMARY KEY  (meta_id),
 	KEY meta_key (meta_key($max_index_length)),
 	KEY blog_id (blog_id)
@@ -291,6 +300,7 @@ CREATE TABLE $wpdb->sitemeta (
 	site_id bigint(20) NOT NULL default '0',
 	meta_key varchar(255) default NULL,
 	meta_value longtext,
+	meta_type enum($enum_col) default '$default_enum',
 	PRIMARY KEY  (meta_id),
 	KEY meta_key (meta_key($max_index_length)),
 	KEY site_id (site_id)
@@ -596,19 +606,18 @@ function populate_options( array $options = array() ) {
 			$autoload = 'yes';
 		}
 
-		if ( is_array( $value ) ) {
-			$value = serialize( $value );
-		}
+		$value_type = wp_get_database_type_for_value( $value );
+		$value      = wp_prepare_value_for_db( $value );
 
 		if ( ! empty( $insert ) ) {
 			$insert .= ', ';
 		}
 
-		$insert .= $wpdb->prepare( '(%s, %s, %s)', $option, $value, $autoload );
+		$insert .= $wpdb->prepare( '(%s, %s, %s, %s)', $option, $value, $value_type, $autoload );
 	}
 
 	if ( ! empty( $insert ) ) {
-		$wpdb->query( "INSERT INTO $wpdb->options (option_name, option_value, autoload) VALUES " . $insert ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( "INSERT INTO $wpdb->options (option_name, option_value, option_type, autoload) VALUES " . $insert ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	// In case it is set, but blank, update "home".
@@ -1365,16 +1374,15 @@ function populate_site_meta( $site_id, array $meta = array() ) {
 
 	$insert = '';
 	foreach ( $site_meta as $meta_key => $meta_value ) {
-		if ( is_array( $meta_value ) ) {
-			$meta_value = serialize( $meta_value );
-		}
+		$value_type = wp_get_database_type_for_value( $meta_value );
+		$meta_value = wp_prepare_value_for_db( $meta_value );
 		if ( ! empty( $insert ) ) {
 			$insert .= ', ';
 		}
-		$insert .= $wpdb->prepare( '( %d, %s, %s)', $site_id, $meta_key, $meta_value );
+		$insert .= $wpdb->prepare( '( %d, %s, %s, %s)', $site_id, $meta_key, $meta_value, $value_type );
 	}
 
-	$wpdb->query( "INSERT INTO $wpdb->blogmeta ( blog_id, meta_key, meta_value ) VALUES " . $insert ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+	$wpdb->query( "INSERT INTO $wpdb->blogmeta ( blog_id, meta_key, meta_value, meta_type ) VALUES " . $insert ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 	wp_cache_delete( $site_id, 'blog_meta' );
 	wp_cache_set_sites_last_changed();
