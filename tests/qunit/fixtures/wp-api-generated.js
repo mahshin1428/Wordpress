@@ -391,7 +391,8 @@ mockedApiResponse.Schema = {
                                 "relevance",
                                 "slug",
                                 "include_slugs",
-                                "title"
+                                "title",
+                                "rand"
                             ],
                             "required": false
                         },
@@ -1744,6 +1745,7 @@ mockedApiResponse.Schema = {
                                 "slug",
                                 "include_slugs",
                                 "title",
+                                "rand",
                                 "menu_order"
                             ],
                             "required": false
@@ -2839,7 +2841,8 @@ mockedApiResponse.Schema = {
                                 "relevance",
                                 "slug",
                                 "include_slugs",
-                                "title"
+                                "title",
+                                "rand"
                             ],
                             "required": false
                         },
@@ -4391,7 +4394,8 @@ mockedApiResponse.Schema = {
                                 "relevance",
                                 "slug",
                                 "include_slugs",
-                                "title"
+                                "title",
+                                "rand"
                             ],
                             "required": false
                         },
@@ -6574,7 +6578,8 @@ mockedApiResponse.Schema = {
                                 "relevance",
                                 "slug",
                                 "include_slugs",
-                                "title"
+                                "title",
+                                "rand"
                             ],
                             "required": false
                         },
