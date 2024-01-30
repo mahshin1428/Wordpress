@@ -1893,10 +1893,10 @@ class Tests_User extends WP_UnitTestCase {
 		$this->assertTrue( $actual['done'] );
 
 		// Contains 'Community Events Location'.
-		$this->assertSame( 'Community Events Location', $actual['data'][1]['group_label'] );
+		$this->assertSame( 'Community Events Location', (string) $actual['data'][1]['group_label'] );
 
 		// Contains location IP.
-		$this->assertSame( 'IP', $actual['data'][1]['data'][0]['name'] );
+		$this->assertSame( 'IP', (string) $actual['data'][1]['data'][0]['name'] );
 		$this->assertSame( '0.0.0.0', $actual['data'][1]['data'][0]['value'] );
 	}
 
@@ -1922,22 +1922,22 @@ class Tests_User extends WP_UnitTestCase {
 		$this->assertTrue( $actual['done'] );
 
 		// Contains 'Community Events Location'.
-		$this->assertSame( 'Community Events Location', $actual['data'][1]['group_label'] );
+		$this->assertSame( 'Community Events Location', (string) $actual['data'][1]['group_label'] );
 
 		// Contains location city.
-		$this->assertSame( 'City', $actual['data'][1]['data'][0]['name'] );
+		$this->assertSame( 'City', (string) $actual['data'][1]['data'][0]['name'] );
 		$this->assertSame( 'Cincinnati', $actual['data'][1]['data'][0]['value'] );
 
 		// Contains location country.
-		$this->assertSame( 'Country', $actual['data'][1]['data'][1]['name'] );
+		$this->assertSame( 'Country', (string) $actual['data'][1]['data'][1]['name'] );
 		$this->assertSame( 'US', $actual['data'][1]['data'][1]['value'] );
 
 		// Contains location latitude.
-		$this->assertSame( 'Latitude', $actual['data'][1]['data'][2]['name'] );
+		$this->assertSame( 'Latitude', (string) $actual['data'][1]['data'][2]['name'] );
 		$this->assertSame( '39.1271100', $actual['data'][1]['data'][2]['value'] );
 
 		// Contains location longitude.
-		$this->assertSame( 'Longitude', $actual['data'][1]['data'][3]['name'] );
+		$this->assertSame( 'Longitude', (string) $actual['data'][1]['data'][3]['name'] );
 		$this->assertSame( '-84.5143900', $actual['data'][1]['data'][3]['value'] );
 	}
 
@@ -1965,22 +1965,22 @@ class Tests_User extends WP_UnitTestCase {
 		$this->assertTrue( $actual['done'] );
 
 		// Contains Session Tokens.
-		$this->assertSame( 'Session Tokens', $actual['data'][1]['group_label'] );
+		$this->assertSame( 'Session Tokens', (string) $actual['data'][1]['group_label'] );
 
 		// Contains Expiration.
-		$this->assertSame( 'Expiration', $actual['data'][1]['data'][0]['name'] );
+		$this->assertSame( 'Expiration', (string) $actual['data'][1]['data'][0]['name'] );
 		$this->assertSame( 'January 31, 2020 09:13 AM', $actual['data'][1]['data'][0]['value'] );
 
 		// Contains IP.
-		$this->assertSame( 'IP', $actual['data'][1]['data'][1]['name'] );
+		$this->assertSame( 'IP', (string) $actual['data'][1]['data'][1]['name'] );
 		$this->assertSame( '0.0.0.0', $actual['data'][1]['data'][1]['value'] );
 
 		// Contains IP.
-		$this->assertSame( 'User Agent', $actual['data'][1]['data'][2]['name'] );
+		$this->assertSame( 'User Agent', (string) $actual['data'][1]['data'][2]['name'] );
 		$this->assertSame( 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36', $actual['data'][1]['data'][2]['value'] );
 
 		// Contains IP.
-		$this->assertSame( 'Last Login', $actual['data'][1]['data'][3]['name'] );
+		$this->assertSame( 'Last Login', (string) $actual['data'][1]['data'][3]['name'] );
 		$this->assertSame( 'January 29, 2020 09:13 AM', $actual['data'][1]['data'][3]['value'] );
 	}
 

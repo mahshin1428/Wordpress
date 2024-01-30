@@ -4821,9 +4821,10 @@ function get_the_taxonomies( $post = 0, $args = array() ) {
 			$links[] = wp_sprintf( $t['term_template'], esc_attr( get_term_link( $term ) ), $term->name );
 		}
 		if ( $links ) {
-			$taxonomies[ $taxonomy ] = wp_sprintf( $t['template'], $t['label'], $links, $terms );
+			$taxonomies[ $taxonomy ] = wp_sprintf( (string) $t['template'], (string) $t['label'], $links, $terms );
 		}
 	}
+
 	return $taxonomies;
 }
 

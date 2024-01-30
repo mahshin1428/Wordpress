@@ -287,11 +287,11 @@ class Tests_L10n_LoadTextdomainJustInTime extends WP_UnitTestCase {
 		$filter = new MockAction();
 		add_filter( 'locale', array( $filter, 'filter' ) );
 
-		__( 'Foo', $textdomain );
-		__( 'Bar', $textdomain );
-		__( 'Baz', $textdomain );
-		__( 'Foo Bar', $textdomain );
-		__( 'Foo Bar Baz', $textdomain );
+		(string) __( 'Foo', $textdomain );
+		(string) __( 'Bar', $textdomain );
+		(string) __( 'Baz', $textdomain );
+		(string) __( 'Foo Bar', $textdomain );
+		(string) __( 'Foo Bar Baz', $textdomain );
 
 		$this->assertFalse( is_textdomain_loaded( $textdomain ) );
 		$this->assertSame( 1, $filter->get_call_count() );
@@ -311,11 +311,11 @@ class Tests_L10n_LoadTextdomainJustInTime extends WP_UnitTestCase {
 		$filter = new MockAction();
 		add_filter( 'locale', array( $filter, 'filter' ) );
 
-		__( 'Foo', $textdomain );
-		__( 'Bar', $textdomain );
-		__( 'Baz', $textdomain );
-		__( 'Foo Bar', $textdomain );
-		__( 'Foo Bar Baz', $textdomain );
+		(string) __( 'Foo', $textdomain );
+		(string) __( 'Bar', $textdomain );
+		(string) __( 'Baz', $textdomain );
+		(string) __( 'Foo Bar', $textdomain );
+		(string) __( 'Foo Bar Baz', $textdomain );
 
 		$this->assertFalse( is_textdomain_loaded( $textdomain ) );
 		$this->assertSame( 1, $filter->get_call_count() );

@@ -4007,7 +4007,7 @@ function wp_trim_excerpt( $text = '', $post = null ) {
 		}
 
 		/* translators: Maximum number of words used in a post excerpt. */
-		$excerpt_length = (int) _x( '55', 'excerpt_length' );
+		$excerpt_length = (int) (string) _x( '55', 'excerpt_length' );
 
 		/**
 		 * Filters the maximum number of words in a post excerpt.
@@ -5525,6 +5525,10 @@ function normalize_whitespace( $str ) {
 function wp_strip_all_tags( $text, $remove_breaks = false ) {
 	if ( is_null( $text ) ) {
 		return '';
+	}
+
+	if ( $text instanceof WP_String_Proxy ) {
+		$text = (string) $text;
 	}
 
 	if ( ! is_scalar( $text ) ) {

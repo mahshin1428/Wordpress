@@ -63,6 +63,10 @@ class WP_Error {
 			return;
 		}
 
+		if ( $message instanceof WP_String_Proxy ) {
+			$message = (string) $message;
+		}
+
 		$this->add( $code, $message, $data );
 	}
 
@@ -190,6 +194,10 @@ class WP_Error {
 	 * @param mixed      $data    Optional. Error data. Default empty string.
 	 */
 	public function add( $code, $message, $data = '' ) {
+		if ( $message instanceof WP_String_Proxy ) {
+			$message = (string) $message;
+		}
+
 		$this->errors[ $code ][] = $message;
 
 		if ( ! empty( $data ) ) {

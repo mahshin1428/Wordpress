@@ -144,7 +144,7 @@ class Tests_L10n_wpLocaleSwitcher extends WP_UnitTestCase {
 	public function test_switch_to_locale_loads_translation() {
 		switch_to_locale( 'es_ES' );
 
-		$actual = __( 'Invalid parameter.' );
+		$actual = (string) __( 'Invalid parameter.' );
 
 		// Cleanup.
 		restore_previous_locale();
@@ -214,7 +214,7 @@ class Tests_L10n_wpLocaleSwitcher extends WP_UnitTestCase {
 		switch_to_locale( 'de_DE' );
 		switch_to_locale( 'es_ES' );
 
-		$actual = __( 'Invalid parameter.' );
+		$actual = (string) __( 'Invalid parameter.' );
 
 		// Cleanup.
 		restore_previous_locale();
@@ -268,7 +268,7 @@ class Tests_L10n_wpLocaleSwitcher extends WP_UnitTestCase {
 		switch_to_locale( 'es_ES' );
 		restore_previous_locale();
 
-		$actual = __( 'Invalid parameter.' );
+		$actual = (string) __( 'Invalid parameter.' );
 
 		$this->assertSame( 'Invalid parameter.', $actual );
 	}

@@ -132,9 +132,9 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		// Expected menu item array.
 		$expected = array(
 			'id'         => 'home',
-			'title'      => _x( 'Home', 'nav menu home label' ),
+			'title'      => (string) _x( 'Home', 'nav menu home label' ),
 			'type'       => 'custom',
-			'type_label' => __( 'Custom Link' ),
+			'type_label' => (string) __( 'Custom Link' ),
 			'object'     => '',
 			'url'        => home_url(),
 		);
@@ -390,7 +390,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$results = $menus->search_available_items_query(
 			array(
 				'pagenum' => 1,
-				's'       => $title,
+				's'       => (string) $title,
 			)
 		);
 		$this->assertCount( 1, $results );
