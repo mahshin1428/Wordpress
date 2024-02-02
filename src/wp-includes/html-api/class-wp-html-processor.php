@@ -1402,15 +1402,21 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 				if ( ! $this->state->stack_of_open_elements->has_element_in_table_scope( 'TABLE' ) ) {
 					return $this->step();
 				}
-				$this->clear_stack_to_table_context();
-				break;
+				$this->state->stack_of_open_elements->pop_until( 'TABLE' );
+				$this->reset_insertion_mode();
+				return $this->step( self::REPROCESS_CURRENT_NODE );
 
 			/*
 			 * > An end tag whose tag name is "table"
 			 */
 			case "-TABLE":
-				$this->clear_stack_to_table_context();
-				break;
+				if ( ! $this->state->stack_of_open_elements->has_element_in_table_scope( 'TABLE' ) ) {
+					// parse error
+					return $this->step();
+				}
+				$this->state->stack_of_open_elements->pop_until( 'TABLE' );
+				$this->reset_insertion_mode();
+				return true;
 
 			/*
 			 * > An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html", "tbody", "td", "tfoot", "th", "thead", "tr"
@@ -1426,45 +1432,59 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			case "-TH":
 			case "-THEAD":
 			case "-TR":
-				$this->clear_stack_to_table_context();
-				break;
+				// parse error
+				return $this->step();
 
 			/*
 			 * > A start tag whose tag name is one of: "style", "script", "template"
+			 * > An end tag whose tag name is "template"
 			 */
 			case "+STYLE":
 			case "+SCRIPT":
 			case "+TEMPLATE":
-				$this->clear_stack_to_table_context();
-				break;
-
-			/*
-			 * > An end tag whose tag name is "template"
-			 */
 			case "-TEMPLATE":
-				$this->clear_stack_to_table_context();
-				break;
+				// > Process the token using the rules for the "in head" insertion mode.
+				$this->last_error = self::ERROR_UNSUPPORTED;
+				throw new WP_HTML_Unsupported_Exception( "Cannot process {$tag_name} element." );
 
 			/*
 			 * > A start tag whose tag name is "input"
+			 *
+			 * > If the token does not have an attribute with the name "type", or if it does, but
+			 * > that attribute's value is not an ASCII case-insensitive match for the string
+			 * > "hidden", then: act as described in the "anything else" entry below.
 			 */
 			case "+INPUT":
-				$this->clear_stack_to_table_context();
-				break;
+				$type_attribute = $this->get_attribute( 'type' );
+				if ( ! is_string( $type_attribute ) || 'hidden' !== strtolower( $type_attribute ) ) {
+					goto in_table_anything_else;
+				}
+				// parse error
+				$this->insert_html_element( $this->state->current_token );
+				return true;
 
 			/*
 			 * > A start tag whose tag name is "form"
 			 */
 			case "+FORM":
-				$this->clear_stack_to_table_context();
-				break;
+				if (
+					$this->state->stack_of_open_elements->has_element_in_scope( 'TEMPLATE' ) ||
+
+				) {
+				}
 
 			/*
 			 * > An end-of-file token
 			 */
 			/*
 			 * > Anything else
+			 * > Parse error. Enable foster parenting, process the token using the rules for the
+			 * > "in body" insertion mode, and then disable foster parenting.
 			 */
+			default:
+				in_table_anything_else:
+				$this->last_error = self::ERROR_UNSUPPORTED;
+				throw new WP_HTML_Unsupported_Exception( "Cannot process {$tag_name} element." );
 		}
 
 		$this->last_error = self::ERROR_UNSUPPORTED;
