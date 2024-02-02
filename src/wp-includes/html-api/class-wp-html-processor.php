@@ -1346,21 +1346,30 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			 */
 			case "+CAPTION":
 				$this->clear_stack_to_table_context();
-				break;
+				$this->state->active_formatting_elements->set_marker();
+				$this->insert_html_element( $this->state->current_token );
+				$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_CAPTION;
+				return true;
 
 			/*
 			 * > A start tag whose tag name is "colgroup"
 			 */
 			case "+COLGROUP":
 				$this->clear_stack_to_table_context();
-				break;
+				$this->insert_html_element( $this->state->current_token );
+				$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_COLUMN_GROUP;
+				return true;
 
 			/*
 			 * > A start tag whose tag name is "col"
 			 */
 			case "+COL":
 				$this->clear_stack_to_table_context();
-				break;
+				$this->insert_html_element(
+					new WP_HTML_Token( null, 'COLGROUP', false )
+				);
+				$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_COLUMN_GROUP;
+				return $this->step( self::REPROCESS_CURRENT_NODE );
 
 			/*
 			 * > A start tag whose tag name is one of: "tbody", "tfoot", "thead"
@@ -1369,7 +1378,9 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			case "+TFOOT":
 			case "+THEAD":
 				$this->clear_stack_to_table_context();
-				break;
+				$this->insert_html_element( $this->state->current_token );
+				$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_TABLE_BODY;
+				return true;
 
 			/*
 			 * > A start tag whose tag name is one of: "td", "th", "tr"
@@ -1378,12 +1389,19 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			case "+TH":
 			case "+TR":
 				$this->clear_stack_to_table_context();
-				break;
+				$this->insert_html_element(
+					new WP_HTML_Token( null, 'TBODY', false )
+				);
+				return $this->step( self::REPROCESS_CURRENT_NODE );
 
 			/*
 			 * > A start tag whose tag name is "table"
 			 */
 			case "+TABLE":
+				// pase error
+				if ( ! $this->state->stack_of_open_elements->has_element_in_table_scope( 'TABLE' ) ) {
+					return $this->step();
+				}
 				$this->clear_stack_to_table_context();
 				break;
 
