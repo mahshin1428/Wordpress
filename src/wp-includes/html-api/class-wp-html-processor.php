@@ -981,6 +981,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 				$this->insert_html_element( $this->state->current_token );
 				$this->state->frameset_ok = false;
 				$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_TABLE;
+				return true;
 
 			/*
 			 * > An end tag whose tag name is "br"
