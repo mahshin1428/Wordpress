@@ -1469,13 +1469,18 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			case "+FORM":
 				if (
 					$this->state->stack_of_open_elements->has_element_in_scope( 'TEMPLATE' ) ||
-
+					$this->has_element_pointer( 'FORM' )
 				) {
+					return $this->step();
 				}
+				$this->insert_html_element( $this->state->current_token );
+				$this->set_element_pointer( 'FORM' );
+				return true;
 
 			/*
 			 * > An end-of-file token
 			 */
+
 			/*
 			 * > Anything else
 			 * > Parse error. Enable foster parenting, process the token using the rules for the
@@ -1743,6 +1748,14 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	 */
 	public function set_bookmark( $bookmark_name ) {
 		return parent::set_bookmark( "_{$bookmark_name}" );
+	}
+
+	private function set_element_pointer( string $tag_name ) {
+		return parent::set_bookmark( "element_pointer_{$tag_name}" );
+	}
+
+	private function has_element_pointer( string $tag_name ) {
+		return parent::has_bookmark( "element_pointer_{$tag_name}" );
 	}
 
 	/*
