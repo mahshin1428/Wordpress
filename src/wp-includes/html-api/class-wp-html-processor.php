@@ -1395,6 +1395,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 				$this->insert_html_element(
 					new WP_HTML_Token( null, 'TBODY', false )
 				);
+				$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_TABLE_BODY;
 				return $this->step( self::REPROCESS_CURRENT_NODE );
 
 			/*
