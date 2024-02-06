@@ -61,6 +61,10 @@ class WP_Metadata_Lazyloader {
 				'filter'   => 'get_comment_metadata',
 				'callback' => array( $this, 'lazyload_meta_callback' ),
 			),
+			'post'    => array(
+				'filter'   => 'get_post_metadata',
+				'callback' => array( $this, 'lazyload_meta_callback' ),
+			),
 			'blog'    => array(
 				'filter'   => 'get_blog_metadata',
 				'callback' => array( $this, 'lazyload_meta_callback' ),
