@@ -90,7 +90,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	<html <?php language_attributes(); ?>>
 	<head>
 	<meta http-equiv="Content-Type" content="<?php bloginfo( 'html_type' ); ?>; charset=<?php bloginfo( 'charset' ); ?>" />
-	<title><?php echo $login_title; ?></title>
+	<title><?php echo esc_html( $login_title ); ?></title>
 	<?php
 
 	wp_enqueue_style( 'login' );
@@ -209,7 +209,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 
 	?>
 	<div id="login">
-		<h1><a href="<?php echo esc_url( $login_header_url ); ?>"><?php echo $login_header_text; ?></a></h1>
+		<h1><a href="<?php echo esc_url( $login_header_url ); ?>"><?php echo esc_html( $login_header_text ); ?></a></h1>
 	<?php
 	/**
 	 * Filters the message to display above the login form.
@@ -221,7 +221,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	$message = apply_filters( 'login_message', $message );
 
 	if ( ! empty( $message ) ) {
-		echo $message . "\n";
+		echo esc_html( $message ) . "\n";
 	}
 
 	// In case a plugin uses $error rather than the $wp_errors object.
