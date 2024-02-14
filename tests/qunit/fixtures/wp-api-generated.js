@@ -9802,7 +9802,8 @@ mockedApiResponse.Schema = {
                             "enum": [
                                 "post",
                                 "term",
-                                "post-format"
+                                "post-format",
+                                "media"
                             ],
                             "required": false
                         },
