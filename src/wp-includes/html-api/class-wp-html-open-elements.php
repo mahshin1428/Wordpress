@@ -128,7 +128,13 @@ class WP_HTML_Open_Elements {
 					return false;
 			}
 
-			if ( in_array( $node->node_name, $termination_list, true ) ) {
+			/*
+			 * @todo The first set of elements should match regardless of namespace, but the
+			 *       additional scope groups (list, button, etc...) only trap on elements in
+			 *       the HTML namespace. This needs to address that.
+			 */
+			$node_name = 'html' === $node->namespace ? $node->node_name : "{$node->namespace}-{$node->node_name}";
+			if ( in_array( $node_name, $termination_list, true ) ) {
 				return false;
 			}
 		}
@@ -150,14 +156,24 @@ class WP_HTML_Open_Elements {
 		return $this->has_element_in_specific_scope(
 			$tag_name,
 			array(
-
-				/*
-				 * Because it's not currently possible to encounter
-				 * one of the termination elements, they don't need
-				 * to be listed here. If they were, they would be
-				 * unreachable and only waste CPU cycles while
-				 * scanning through HTML.
-				 */
+				'APPLET',
+				'CAPTION',
+				'HTML',
+				'TABLE',
+				'TD',
+				'TH',
+				'MARQUEE',
+				'OBJECT',
+				'TEMPLATE',
+				'math-MI',
+				'math-MO',
+				'math-MN',
+				'math-MS',
+				'math-MTEXT',
+				'math-ANNOTATION-XML',
+				'svg-FOREIGNOBJECT',
+				'svg-DESC',
+				'svg-TITLE',
 			)
 		);
 	}
@@ -177,7 +193,24 @@ class WP_HTML_Open_Elements {
 		return $this->has_element_in_specific_scope(
 			$tag_name,
 			array(
-				// There are more elements that belong here which aren't currently supported.
+				'APPLET',
+				'CAPTION',
+				'HTML',
+				'TABLE',
+				'TD',
+				'TH',
+				'MARQUEE',
+				'OBJECT',
+				'TEMPLATE',
+				'math-MI',
+				'math-MO',
+				'math-MN',
+				'math-MS',
+				'math-MTEXT',
+				'math-ANNOTATION-XML',
+				'svg-FOREIGNOBJECT',
+				'svg-DESC',
+				'svg-TITLE',
 				'OL',
 				'UL',
 			)
@@ -195,7 +228,30 @@ class WP_HTML_Open_Elements {
 	 * @return bool Whether given element is in scope.
 	 */
 	public function has_element_in_button_scope( $tag_name ) {
-		return $this->has_element_in_specific_scope( $tag_name, array( 'BUTTON' ) );
+		return $this->has_element_in_specific_scope(
+			$tag_name,
+			array(
+				'APPLET',
+				'CAPTION',
+				'HTML',
+				'TABLE',
+				'TD',
+				'TH',
+				'MARQUEE',
+				'OBJECT',
+				'TEMPLATE',
+				'math-MI',
+				'math-MO',
+				'math-MN',
+				'math-MS',
+				'math-MTEXT',
+				'math-ANNOTATION-XML',
+				'svg-FOREIGNOBJECT',
+				'svg-DESC',
+				'svg-TITLE',
+				'BUTTON',
+			)
+		);
 	}
 
 	/**
@@ -205,33 +261,59 @@ class WP_HTML_Open_Elements {
 	 *
 	 * @see https://html.spec.whatwg.org/#has-an-element-in-table-scope
 	 *
-	 * @throws WP_HTML_Unsupported_Exception Always until this function is implemented.
-	 *
 	 * @param string $tag_name Name of tag to check.
 	 * @return bool Whether given element is in scope.
 	 */
 	public function has_element_in_table_scope( $tag_name ) {
-		throw new WP_HTML_Unsupported_Exception( 'Cannot process elements depending on table scope.' );
-
-		return false; // The linter requires this unreachable code until the function is implemented and can return.
+		return $this->has_element_in_specific_scope(
+			$tag_name,
+			array(
+				'HTML',
+				'TABLE',
+				'TEMPLATE',
+			)
+		);
 	}
 
 	/**
 	 * Returns whether a particular element is in select scope.
 	 *
+	 * Note: This is slightly different from the check for a specific
+	 * scope because it's checking against _any element except for_
+	 * the OPTGROUP and OPTION elements.
+	 *
 	 * @since 6.4.0
 	 *
 	 * @see https://html.spec.whatwg.org/#has-an-element-in-select-scope
-	 *
-	 * @throws WP_HTML_Unsupported_Exception Always until this function is implemented.
 	 *
 	 * @param string $tag_name Name of tag to check.
 	 * @return bool Whether given element is in scope.
 	 */
 	public function has_element_in_select_scope( $tag_name ) {
-		throw new WP_HTML_Unsupported_Exception( 'Cannot process elements depending on select scope.' );
+		foreach ( $this->walk_up() as $node ) {
+			if ( $node->node_name === $tag_name ) {
+				return true;
+			}
 
-		return false; // The linter requires this unreachable code until the function is implemented and can return.
+			if (
+				'(internal: H1 through H6 - do not use)' === $tag_name &&
+				in_array( $node->node_name, array( 'H1', 'H2', 'H3', 'H4', 'H5', 'H6' ), true )
+			) {
+				return true;
+			}
+
+			switch ( $node->node_name ) {
+				case 'HTML':
+					return false;
+			}
+
+			$node_name = 'html' === $node->namespace ? $node->node_name : "{$node->namespace}-{$node->node_name}";
+			if ( 'OPTGROUP' !== $node_name && 'OPTION' !== $node_name ) {
+				return false;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -416,12 +498,34 @@ class WP_HTML_Open_Elements {
 	 * @param WP_HTML_Token $item Element that was added to the stack of open elements.
 	 */
 	public function after_element_push( $item ) {
+		$node_name = 'html' === $item->namespace ? $item->node_name : "{$item->namespace}-{$item->node_name}";
+
 		/*
 		 * When adding support for new elements, expand this switch to trap
 		 * cases where the precalculated value needs to change.
 		 */
-		switch ( $item->node_name ) {
+		switch ( $node_name ) {
+			case 'APPLET':
 			case 'BUTTON':
+			case 'CAPTION':
+			case 'HTML':
+			case 'MARQUEE':
+			case 'OBJECT':
+			case 'OL':
+			case 'TABLE':
+			case 'TD':
+			case 'TEMPLATE':
+			case 'TH':
+			case 'UL':
+			case 'math-ANNOTATION-XML':
+			case 'math-MI':
+			case 'math-MN':
+			case 'math-MO':
+			case 'math-MS':
+			case 'math-MTEXT':
+			case 'svg-DESC':
+			case 'svg-FOREIGNOBJECT':
+			case 'svg-TITLE':
 				$this->has_p_in_button_scope = false;
 				break;
 
@@ -445,16 +549,35 @@ class WP_HTML_Open_Elements {
 	 * @param WP_HTML_Token $item Element that was removed from the stack of open elements.
 	 */
 	public function after_element_pop( $item ) {
+		$node_name = 'html' === $item->namespace ? $item->node_name : "{$item->namespace}-{$item->node_name}";
+
 		/*
 		 * When adding support for new elements, expand this switch to trap
 		 * cases where the precalculated value needs to change.
 		 */
-		switch ( $item->node_name ) {
+		switch ( $node_name ) {
+			case 'APPLET':
 			case 'BUTTON':
-				$this->has_p_in_button_scope = $this->has_element_in_button_scope( 'P' );
-				break;
-
+			case 'CAPTION':
+			case 'HTML':
+			case 'MARQUEE':
+			case 'OBJECT':
+			case 'OL':
 			case 'P':
+			case 'TABLE':
+			case 'TD':
+			case 'TEMPLATE':
+			case 'TH':
+			case 'UL':
+			case 'math-ANNOTATION-XML':
+			case 'math-MI':
+			case 'math-MN':
+			case 'math-MO':
+			case 'math-MS':
+			case 'math-MTEXT':
+			case 'svg-DESC':
+			case 'svg-FOREIGNOBJECT':
+			case 'svg-TITLE':
 				$this->has_p_in_button_scope = $this->has_element_in_button_scope( 'P' );
 				break;
 		}
