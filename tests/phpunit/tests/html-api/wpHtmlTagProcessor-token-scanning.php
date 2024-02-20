@@ -476,6 +476,35 @@ HTML
 	}
 
 	/**
+	 * Ensures that empty CDATA sections inside foreign content are detected.
+	 *
+	 * @ticket {TICKET_NUMBER}
+	 */
+	public function test_empty_cdata_in_foreign_content() {
+		$processor = new WP_HTML_Tag_Processor( '<svg><![CDATA[]]></svg>' );
+		$processor->next_token();
+
+		// Artificially set flag; this should be done in the HTML Processor.
+		$reflector                 = new ReflectionClass( $processor );
+		$is_inside_foreign_content = $reflector->getProperty( 'is_inside_foreign_content' );
+		$is_inside_foreign_content->setAccessible( true );
+		$is_inside_foreign_content->setValue( $processor, true );
+
+		$processor->next_token();
+
+		$this->assertSame(
+			'#cdata-section',
+			$processor->get_token_name(),
+			"Should have found a CDATA section but found {$processor->get_token_name()} instead."
+		);
+
+		$this->assertEmpty(
+			$processor->get_modifiable_text(),
+			'Found non-empty modifiable text.'
+		);
+	}
+
+	/**
 	 * Ensures that normative Processing Instruction nodes are properly parsed.
 	 *
 	 * @ticket 60170
