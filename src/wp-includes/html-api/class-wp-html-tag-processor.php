@@ -1750,7 +1750,7 @@ class WP_HTML_Tag_Processor {
 					'A' === $html[ $at + 7 ] &&
 					'[' === $html[ $at + 8 ]
 				) {
-					$closer_at = strpos( $html, ']]>', $at + 1 );
+					$closer_at = strpos( $html, ']]>', $at + 9 );
 					if ( false === $closer_at ) {
 						$this->parser_state = self::STATE_INCOMPLETE_INPUT;
 
