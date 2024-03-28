@@ -753,6 +753,9 @@ $_old_files = array(
 	'wp-includes/navigation-fallback.php',
 	'wp-includes/blocks/navigation/view-modal.min.js',
 	'wp-includes/blocks/navigation/view-modal.js',
+	// 6.6
+	'wp-content/plugins/hello.php',
+
 );
 
 /**
