@@ -1,6 +1,90 @@
 <?php
 
 class WP_HTML_To_Markdown_Converter {
+	public static function normalize_html( $html ) {
+		$processor = WP_HTML_Processor::create_fragment( $html );
+		$output    = '';
+
+		$attribute_list = static function ( $attributes ) {
+			$list = array();
+			foreach ( $attributes as $name => $value ) {
+				if ( false === $value || null === $value ) {
+					continue;
+				}
+
+				if ( true === $value ) {
+					$list[] = $name;
+					continue;
+				}
+
+				$value  = str_replace( '"', '&quot;', $value );
+				$list[] = "{$name}=\"{$value}\"";
+			}
+
+			return implode( ' ', $list );
+		};
+
+		$tag = static function ( $tag_name, $attributes ) use ( $attribute_list ) {
+			$tag_name = strtolower( $tag_name );
+
+			if ( 0 === count( $attributes ) ) {
+				return "<{$tag_name}>";
+			}
+
+			$attributes = $attribute_list( $attributes );
+			return "<{$tag_name} {$attributes}>";
+		};
+
+		$closing_tag = static function ( $tag_name ) {
+			$tag_name = strtolower( $tag_name );
+			return "</{$tag_name}>";
+		};
+
+		while ( $processor->next_token() ) {
+			$token_name = $processor->get_token_name();
+			$token_type = $processor->get_token_type();
+
+			switch ( $token_type ) {
+				case '#tag':
+					$attributes      = array();
+					$attribute_names = $processor->get_attribute_names_with_prefix( '' ) ?? array();
+					sort( $attribute_names );
+					foreach ( $attribute_names as $name ) {
+						$attributes[ $name ] = $processor->get_attribute( $name );
+					}
+
+					$is_void = WP_HTML_Processor::is_void( $token_name );
+					if ( $is_void && ! $processor->is_tag_closer() ) {
+						$output .= $tag( $token_name, $attributes );
+						break;
+					}
+
+					if ( $is_void ) {
+						break;
+					}
+
+					$output .= $processor->is_tag_closer()
+						? $closing_tag( $token_name )
+						: $tag( $token_name, $attributes );
+					break;
+
+				case '#text':
+					$output .= htmlspecialchars( $processor->get_modifiable_text(), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5 );
+					break;
+
+				case '#comment':
+					switch ( $processor->get_comment_type() ) {
+						case WP_HTML_Tag_Processor::COMMENT_AS_HTML_COMMENT:
+							$comment = $processor->get_modifiable_text();
+							$output .= "<!--{$comment}-->";
+							break;
+					}
+			}
+		}
+
+		return $output;
+	}
+
 	public static function convert( $html ) {
 		$processor   = WP_HTML_Processor::create_fragment( $html );
 		$md          = '';

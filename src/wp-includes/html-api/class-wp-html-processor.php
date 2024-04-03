@@ -1314,6 +1314,23 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 		return parent::get_token_name();
 	}
 
+	public function get_token_type() {
+		if ( isset( $this->current_element ) ) {
+			$node_name = $this->current_element->token->node_name;
+			if ( ctype_upper( $node_name[0] ) ) {
+				return '#tag';
+			}
+
+			if ( 'html' === $node_name ) {
+				return '#doctype';
+			}
+
+			return $node_name;
+		}
+
+		return parent::get_token_type();
+	}
+
 	/**
 	 * Removes a bookmark that is no longer needed.
 	 *
