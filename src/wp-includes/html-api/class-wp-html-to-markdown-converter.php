@@ -4,13 +4,12 @@ class WP_HTML_To_Markdown_Converter {
 	public static function convert( $html ) {
 		$processor   = WP_HTML_Processor::create_fragment( $html );
 		$md          = '';
-		$list_items  = array();
-		$depth       = 0;
 		$blockquotes = array();
 		$link        = null;
+		$lists       = array();
 
 		while ( $processor->next_token() ) {
-			$indent      = str_pad( '', $depth * 2, ' ' );
+			$indent      = str_pad( '', count( $lists ) * 2, ' ' );
 			$token_name  = $processor->get_token_name();
 			$breadcrumbs = $processor->get_breadcrumbs();
 
@@ -52,8 +51,13 @@ class WP_HTML_To_Markdown_Converter {
 
 					case 'OL':
 					case 'UL':
-						--$depth;
-						array_pop( $list_items );
+						$this_list = array_pop( $lists );
+
+						// Add an extra newline between the close and start of different list types.
+						$prev_list = end( $lists );
+						if ( ! isset( $prev_list ) || $this_list[0] !== $prev_list[0] ) {
+							$md .= "\n";
+						}
 						break;
 				}
 
@@ -120,18 +124,25 @@ class WP_HTML_To_Markdown_Converter {
 					break;
 
 				case 'LI':
-					$list_item = end( $list_items );
-					$md       .= "\n{$indent}{$list_item} ";
+					list( $list_type, $counter ) = end( $lists );
+					switch ( $list_type ) {
+						case 'UL':
+							$md .= "\n{$indent}- ";
+							break;
+
+						case 'OL':
+							$lists[ count( $lists ) - 1 ][1] = ++$counter;
+							$md                             .= "\n{$indent}{$counter}. ";
+							break;
+					}
 					break;
 
 				case 'OL':
-					++$depth;
-					$list_items[] = '*';
+					$lists[] = array( 'OL', 0 );
 					break;
 
 				case 'UL':
-					++$depth;
-					$list_items[] = '-';
+					$lists[] = array( 'UL' );
 					break;
 			}
 
@@ -194,8 +205,7 @@ class WP_HTML_To_Markdown_Converter {
 
 				case 'OL':
 				case 'UL':
-					--$depth;
-					array_pop( $list_items );
+					array_pop( $lists );
 					break;
 			}
 		}
