@@ -31,6 +31,11 @@ class WP_HTML_To_Markdown_Converter {
 
 					case 'B':
 					case 'STRONG':
+						foreach ( $breadcrumbs as $crumb ) {
+							if ( 'B' === $crumb || 'STRONG' === $crumb ) {
+								break 2;
+							}
+						}
 						$md .= '**';
 						break;
 
@@ -55,7 +60,7 @@ class WP_HTML_To_Markdown_Converter {
 
 						// Add an extra newline between the close and start of different list types.
 						$prev_list = end( $lists );
-						if ( ! isset( $prev_list ) || $this_list[0] !== $prev_list[0] ) {
+						if ( false === $prev_list || $this_list[0] !== $prev_list[0] ) {
 							$md .= "\n";
 						}
 						break;
@@ -105,6 +110,12 @@ class WP_HTML_To_Markdown_Converter {
 
 				case 'B':
 				case 'STRONG':
+					for ( $i = count( $breadcrumbs ) - 2; $i >= 0; $i-- ) {
+						$crumb = $breadcrumbs[ $i ];
+						if ( 'B' === $crumb || 'STRONG' === $crumb ) {
+							break 2;
+						}
+					}
 					$md .= '**';
 					break;
 
@@ -142,7 +153,7 @@ class WP_HTML_To_Markdown_Converter {
 					break;
 
 				case 'UL':
-					$lists[] = array( 'UL' );
+					$lists[] = array( 'UL', 0 );
 					break;
 			}
 
@@ -185,6 +196,11 @@ class WP_HTML_To_Markdown_Converter {
 
 				case 'B':
 				case 'STRONG':
+					foreach ( $breadcrumbs as $crumb ) {
+						if ( 'B' === $crumb || 'STRONG' === $crumb ) {
+							break 2;
+						}
+					}
 					$md .= '**';
 					break;
 
