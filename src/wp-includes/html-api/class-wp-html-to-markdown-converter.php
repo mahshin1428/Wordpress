@@ -101,7 +101,7 @@ class WP_HTML_To_Markdown_Converter {
 
 				case 'B':
 				case 'STRONG':
-					$md .= '*';
+					$md .= '**';
 					break;
 
 				case 'I':

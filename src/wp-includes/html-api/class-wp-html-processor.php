@@ -211,6 +211,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	 */
 	private $release_internal_bookmark_on_destruct = null;
 
+	/** @var WP_HTML_Element_Operation[] */
 	private $element_queue = array();
 
 	/** @var WP_HTML_Element_Operation */
