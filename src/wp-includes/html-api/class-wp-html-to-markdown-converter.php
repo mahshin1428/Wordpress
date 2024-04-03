@@ -2,25 +2,17 @@
 
 class WP_HTML_To_Markdown_Converter {
 	public static function convert( $html ) {
-		$processor  = WP_HTML_Processor::create_fragment( $html );
-		$md         = '';
-		$list_items = array();
-		$depth      = 0;
-		echo "\n";
+		$processor   = WP_HTML_Processor::create_fragment( $html );
+		$md          = '';
+		$list_items  = array();
+		$depth       = 0;
+		$blockquotes = array();
+		$link        = null;
 
-		echo "\e[90mFound these nodes…\e[m\n";
-		$node_count = 8;
 		while ( $processor->next_token() ) {
 			$indent      = str_pad( '', $depth * 2, ' ' );
 			$token_name  = $processor->get_token_name();
 			$breadcrumbs = $processor->get_breadcrumbs();
-
-			$closer = $processor->is_tag_closer() ? '/' : '';
-			if ( 0 === --$node_count ) {
-				$node_count = 8;
-				echo "\n";
-			}
-			echo "\e[36m{$closer}\e[32m{$token_name}\e[m ";
 
 			if ( $processor->is_tag_closer() ) {
 				switch ( $token_name ) {
@@ -33,9 +25,24 @@ class WP_HTML_To_Markdown_Converter {
 						$md .= "\n";
 						break;
 
+					case 'A':
+						$md  .= "]({$link})";
+						$link = null;
+						break;
+
 					case 'B':
 					case 'STRONG':
-						$md .= '*';
+						$md .= '**';
+						break;
+
+					case 'BLOCKQUOTE':
+						$blockquote_at = array_pop( $blockquotes );
+						$blockquote    = substr( $md, $blockquote_at );
+						$blockquote    = implode( "\n", array_map( fn ( $l ) => "> {$l}", explode( "\n", $blockquote ) ) );
+						$md            = substr( $md, 0, $blockquote_at ) . "\n" . $blockquote;
+						if ( 0 === count( $blockquotes ) ) {
+							$md .= "\n";
+						}
 						break;
 
 					case 'I':
@@ -56,7 +63,19 @@ class WP_HTML_To_Markdown_Converter {
 
 			switch ( $token_name ) {
 				case '#text':
-					$md .= $processor->get_modifiable_text();
+					$text_chunk = $processor->get_modifiable_text();
+
+					// Skip inter-element whitespace.
+					// @todo: Detect this properly, ensuring it's actually inter-element.
+					if ( '' === trim( $text_chunk, "\t\r\n\f" ) ) {
+						break;
+					}
+
+					if ( null !== $link ) {
+						$text_chunk = str_replace( ']', '\\]', $text_chunk );
+					}
+
+					$md .= $text_chunk;
 					break;
 
 				case 'P':
@@ -74,6 +93,12 @@ class WP_HTML_To_Markdown_Converter {
 					$md        .= "\n\n{$hashes} ";
 					break;
 
+				case 'A':
+					$href = $processor->get_attribute( 'href' );
+					$link = $href;
+					$md  .= '[';
+					break;
+
 				case 'B':
 				case 'STRONG':
 					$md .= '*';
@@ -82,6 +107,16 @@ class WP_HTML_To_Markdown_Converter {
 				case 'I':
 				case 'EM':
 					$md .= '_';
+					break;
+
+				case 'IMG':
+					$src = $processor->get_attribute( 'src' );
+					$src = str_replace( ')', '%29', $src );
+					$md .= "![]({$src})";
+					break;
+
+				case 'BLOCKQUOTE':
+					$blockquotes[] = strlen( $md );
 					break;
 
 				case 'LI':
@@ -132,9 +167,24 @@ class WP_HTML_To_Markdown_Converter {
 					$md .= "\n";
 					break;
 
+				case 'A':
+					$md  .= "]({$link})";
+					$link = null;
+					break;
+
 				case 'B':
 				case 'STRONG':
-					$md .= '*';
+					$md .= '**';
+					break;
+
+				case 'BLOCKQUOTE':
+					$blockquote_at = array_pop( $blockquotes );
+					$blockquote    = substr( $md, $blockquote_at );
+					$blockquote    = implode( "\n", array_map( fn ( $l ) => "> {$l}", explode( "\n", $blockquote ) ) );
+					$md            = substr( $md, 0, $blockquote_at ) . "\n" . $blockquote;
+					if ( 0 === count( $blockquotes ) ) {
+						$md .= "\n";
+					}
 					break;
 
 				case 'I':
@@ -150,6 +200,6 @@ class WP_HTML_To_Markdown_Converter {
 			}
 		}
 
-		return $md;
+		return trim( $md );
 	}
 }
