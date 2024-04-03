@@ -7,6 +7,16 @@
  * @since 6.4.0
  */
 
+class WP_HTML_Element_Operation {
+	public $token;
+	public $operation;
+
+	public function __construct( $token, $operation ) {
+		$this->token     = $token;
+		$this->operation = $operation;
+	}
+}
+
 /**
  * Core class used to safely parse and modify an HTML document.
  *
@@ -201,6 +211,11 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	 */
 	private $release_internal_bookmark_on_destruct = null;
 
+	private $element_queue = array();
+
+	/** @var WP_HTML_Element_Operation */
+	private $current_element = null;
+
 	/*
 	 * Public Interface Functions
 	 */
@@ -299,6 +314,14 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 
 		$this->state = new WP_HTML_Processor_State();
 
+		$this->state->stack_of_open_elements->add_push_handler( function ( WP_HTML_Token $token ) {
+			$this->element_queue[] = new WP_HTML_Element_Operation( $token, 'open' );
+		} );
+
+		$this->state->stack_of_open_elements->add_pop_handler( function ( WP_HTML_Token $token ) {
+			$this->element_queue[] = new WP_HTML_Element_Operation( $token, 'close' );
+		} );
+
 		/*
 		 * Create this wrapper so that it's possible to pass
 		 * a private method into WP_HTML_Token classes without
@@ -365,7 +388,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 					continue;
 				}
 
-				if ( ! $this->is_tag_closer() ) {
+				if ( ! parent::is_tag_closer() ) {
 					return true;
 				}
 			}
@@ -392,7 +415,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 					continue;
 				}
 
-				if ( ! $this->is_tag_closer() ) {
+				if ( ! parent::is_tag_closer() ) {
 					return true;
 				}
 			}
@@ -440,7 +463,22 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	 * @return bool
 	 */
 	public function next_token() {
-		return $this->step();
+		$this->current_element = null;
+
+		if ( 0 === count( $this->element_queue ) && ! $this->step() ) {
+			while ( $this->state->stack_of_open_elements->pop() ) {
+				continue;
+			}
+		}
+
+		$this->current_element = array_shift( $this->element_queue );
+		return null !== $this->current_element;
+	}
+
+	public function is_tag_closer() {
+		return isset( $this->current_element )
+			? ( 'close' === $this->current_element->operation )
+			: parent::is_tag_closer();
 	}
 
 	/**
@@ -629,7 +667,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	private function step_in_body() {
 		$token_name = $this->get_token_name();
 		$token_type = $this->get_token_type();
-		$op_sigil   = '#tag' === $token_type ? ( $this->is_tag_closer() ? '-' : '+' ) : '';
+		$op_sigil   = '#tag' === $token_type ? ( parent::is_tag_closer() ? '-' : '+' ) : '';
 		$op         = "{$op_sigil}{$token_name}";
 
 		switch ( $op ) {
@@ -1152,7 +1190,7 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 				throw new WP_HTML_Unsupported_Exception( "Cannot process {$token_name} element." );
 		}
 
-		if ( ! $this->is_tag_closer() ) {
+		if ( ! parent::is_tag_closer() ) {
 			/*
 			 * > Any other start tag
 			 */
@@ -1248,6 +1286,10 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			return null;
 		}
 
+		if ( isset( $this->current_element ) ) {
+			return $this->current_element->token->node_name;
+		}
+
 		$tag_name = parent::get_tag();
 
 		switch ( $tag_name ) {
@@ -1261,6 +1303,14 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			default:
 				return $tag_name;
 		}
+	}
+
+	public function get_token_name() {
+		if ( isset( $this->current_element ) ) {
+			return $this->current_element->token->node_name;
+		}
+
+		return parent::get_token_name();
 	}
 
 	/**
