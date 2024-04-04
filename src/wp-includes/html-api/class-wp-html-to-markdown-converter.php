@@ -1,6 +1,19 @@
 <?php
 
 class WP_HTML_To_Markdown_Converter {
+	public static function list_tokens( $html ) {
+		$processor = WP_HTML_Processor::create_fragment( $html );
+		echo "\n";
+		$depth = 0;
+		while ( $processor->next_token() ) {
+			$depth += $processor->is_tag_closer() ? -1 : 1;
+
+			$closer = ( '#tag' === $processor->get_token_type() ) ? ( $processor->is_tag_closer() ? '-' : '+' ) : ' ';
+			$name   = str_pad( "\e[36m{$closer}\e[32m{$processor->get_token_name()}", 14, ' ', STR_PAD_LEFT );
+
+			echo "{$name}\e[90m (\e[31m{$depth}\e[90m): {$processor->get_modifiable_text()}\e[m\n";
+		}
+	}
 	public static function normalize_html( $html ) {
 		$processor = WP_HTML_Processor::create_fragment( $html );
 		$output    = '';
@@ -233,7 +246,8 @@ class WP_HTML_To_Markdown_Converter {
 					break;
 
 				case 'OL':
-					$lists[] = array( 'OL', 0 );
+					$start   = intval( $processor->get_attribute( 'start' ) ?? '1' );
+					$lists[] = array( 'OL', $start - 1 );
 					break;
 
 				case 'UL':
