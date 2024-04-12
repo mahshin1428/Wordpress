@@ -1,9 +1,9 @@
 <?php
 
 class WP_Token_Set {
-	const KEY_LENGTH = 2;
-
 	const MAX_LENGTH = 256;
+
+	private $key_length = 2;
 
 	/**
 	 * Stores an optimized form of the word set, where words are grouped
@@ -21,8 +21,9 @@ class WP_Token_Set {
 	 */
 	private $small_words = '';
 
-	public static function from_array( $words ) {
-		$set = new WP_Token_Set();
+	public static function from_array( $words, $key_length = 2 ) {
+		$set             = new WP_Token_Set();
+		$set->key_length = $key_length;
 
 		// Start by grouping words.
 
@@ -35,16 +36,16 @@ class WP_Token_Set {
 
 			$length = strlen( $word );
 
-			if ( self::KEY_LENGTH >= $length ) {
+			if ( $key_length >= $length ) {
 				$shorts[] = $word;
 			} else {
-				$group = substr( $word, 0, self::KEY_LENGTH );
+				$group = substr( $word, 0, $key_length );
 
 				if ( ! isset( $groups[ $group ] ) ) {
 					$groups[ $group ] = array();
 				}
 
-				$groups[ $group ][] = substr( $word, self::KEY_LENGTH );
+				$groups[ $group ][] = substr( $word, $key_length );
 			}
 		}
 
@@ -58,7 +59,7 @@ class WP_Token_Set {
 		// Finally construct the optimized lookups.
 
 		foreach ( $shorts as $word ) {
-			$set->small_words .= str_pad( $word, self::KEY_LENGTH, "\x00" );
+			$set->small_words .= str_pad( $word, $key_length, "\x00" );
 		}
 
 		foreach ( $groups as $group => $group_words ) {
@@ -74,9 +75,10 @@ class WP_Token_Set {
 		return $set;
 	}
 
-	public static function from_precomputed_table( $large_words, $small_words ) {
+	public static function from_precomputed_table( $key_length, $large_words, $small_words ) {
 		$set = new WP_Token_Set();
 
+		$set->key_length  = $key_length;
 		$set->large_words = $large_words;
 		$set->small_words = $small_words;
 
@@ -84,17 +86,17 @@ class WP_Token_Set {
 	}
 
 	public function contains( $word ) {
-		if ( self::KEY_LENGTH >= strlen( $word ) ) {
-			return str_contains( $this->small_words, str_pad( $word, self::KEY_LENGTH, "\x00" ) );
+		if ( $this->key_length >= strlen( $word ) ) {
+			return str_contains( $this->small_words, str_pad( $word, $this->key_length, "\x00" ) );
 		}
 
-		$group_key = substr( $word, 0, self::KEY_LENGTH );
+		$group_key = substr( $word, 0, $this->key_length );
 		if ( ! isset( $this->large_words[ $group_key ] ) ) {
 			return false;
 		}
 
 		$group  = $this->large_words[ $group_key ];
-		$slug   = substr( $word, self::KEY_LENGTH );
+		$slug   = substr( $word, $this->key_length );
 		$length = strlen( $slug );
 		$at     = 0;
 		while ( $at < strlen( $group ) ) {
@@ -113,8 +115,8 @@ class WP_Token_Set {
 		$text_length = strlen( $text );
 
 		// Search for a long word first, if the text is long enough, and if that fails, a short one.
-		if ( self::KEY_LENGTH < $text_length ) {
-			$group_key = substr( $text, $offset, self::KEY_LENGTH );
+		if ( $this->key_length < $text_length ) {
+			$group_key = substr( $text, $offset, $this->key_length );
 
 			if ( ! isset( $this->large_words[ $group_key ] ) ) {
 				return false;
@@ -127,7 +129,7 @@ class WP_Token_Set {
 				$token_length = ord( $group[ $at++ ] );
 				$token        = substr( $group, $at, $token_length );
 
-				if ( 0 === substr_compare( $text, $token, $offset + self::KEY_LENGTH, $token_length ) ) {
+				if ( 0 === substr_compare( $text, $token, $offset + $this->key_length, $token_length ) ) {
 					return $group_key . $token;
 				}
 
@@ -136,12 +138,33 @@ class WP_Token_Set {
 		}
 
 		// Perhaps a short word then.
-		$small_text = str_pad( substr( $text, $offset, self::KEY_LENGTH ), self::KEY_LENGTH, "\x00" );
+		$small_text = str_pad( substr( $text, $offset, $this->key_length ), $this->key_length, "\x00" );
 		$at         = strpos( $this->small_words, $small_text );
 
 		return false !== $at
-			? rtrim( substr( $this->small_words, $at, self::KEY_LENGTH ), "\x00" )
+			? rtrim( substr( $this->small_words, $at, $this->key_length ), "\x00" )
 			: false;
+	}
+
+	public function to_array() {
+		$tokens = array();
+
+		$at = 0;
+		while ( $at < strlen( $this->small_words ) ) {
+			$tokens[] = rtrim( substr( $this->small_words, $at, $this->key_length ), "\x00" );
+			$at      += $this->key_length;
+		}
+
+		foreach ( $this->large_words as $prefix => $group ) {
+			$at = 0;
+			while ( $at < strlen( $group ) ) {
+				$length   = ord( $group[ $at++ ] );
+				$tokens[] = $prefix . rtrim( substr( $group, $at, $length ), "\x00" );
+				$at      += $length;
+			}
+		}
+
+		return $tokens;
 	}
 
 	public function precomputed_php_source_table( $indent = "\t" ) {
@@ -149,9 +172,13 @@ class WP_Token_Set {
 		$i2 = $indent . $indent;
 
 		$output  = self::class . "::from_precomputed_table(\n";
-		$output .= $i1 . "array(\n";
+		$output .= "{$i1}{$this->key_length},\n";
+		$output .= "{$i1}array(\n";
 
-		foreach ( $this->large_words as $prefix => $group ) {
+		$prefixes = array_keys( $this->large_words );
+		sort( $prefixes );
+		foreach ( $prefixes as $prefix ) {
+			$group        = $this->large_words[ $prefix ];
 			$comment_line = "{$i2}//";
 			$data_line    = "{$i2}'{$prefix}' => \"";
 			$at           = 0;
@@ -171,9 +198,18 @@ class WP_Token_Set {
 			$output .= $data_line;
 		}
 
-		$output    .= "{$i1}),\n";
-		$small_text = str_replace( "\x00", '\x00', $this->small_words );
-		$output    .= "{$i1}'{$small_text}'\n";
+		$output .= "{$i1}),\n";
+
+		$small_words = array();
+		$at          = 0;
+		while ( $at < strlen( $this->small_words ) ) {
+			$small_words[] = substr( $this->small_words, $at, $this->key_length );
+			$at           += $this->key_length;
+		}
+		sort( $small_words );
+
+		$small_text = str_replace( "\x00", '\x00', implode( '', $small_words ) );
+		$output    .= "{$i1}\"{$small_text}\"\n";
 		$output    .= ");\n";
 
 		return $output;
