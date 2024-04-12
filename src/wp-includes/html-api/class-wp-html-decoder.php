@@ -67,6 +67,9 @@ class WP_HTML_Decoder {
 		global $html5_named_character_entity_set;
 
 		$length = strlen( $text );
+		if ( $at + 1 >= $length ) {
+			return null;
+		}
 
 		/*
 		 * Numeric character references.
@@ -79,6 +82,10 @@ class WP_HTML_Decoder {
 		 *  - fail to parse and return the replacement character `�`
 		 */
 		if ( '#' === $text[ $at + 1 ] ) {
+			if ( $at + 2 >= $length ) {
+				return null;
+			}
+
 			/** Tracks inner parsing within the numeric character reference. */
 			$digits_at = $at + 2;
 
