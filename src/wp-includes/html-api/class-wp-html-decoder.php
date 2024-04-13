@@ -101,8 +101,9 @@ class WP_HTML_Decoder {
 			}
 
 			// Cannot encode invalid Unicode code points. Max is to U+10FFFF.
-			$digit_count   = strspn( $text, $numeric_digits, $digits_at );
-			$after_digits  = $digits_at + $digit_count;
+			$zero_count    = strspn( $text, '0', $digits_at );
+			$digit_count   = strspn( $text, $numeric_digits, $digits_at + $zero_count );
+			$after_digits  = $digits_at + $zero_count + $digit_count;
 			$has_semicolon = $after_digits < $length && ';' === $text[ $after_digits ];
 			$end_of_span   = $has_semicolon ? $after_digits + 1 : $after_digits;
 
@@ -111,12 +112,12 @@ class WP_HTML_Decoder {
 				return null;
 			}
 
-			if ( $digit_count > $max_digits ) {
+			if ( $digit_count - $zero_count > $max_digits ) {
 				$skip_bytes = $end_of_span - $at;
 				return '�';
 			}
 
-			$digits     = substr( $text, $digits_at, $digit_count );
+			$digits     = substr( $text, $digits_at + $zero_count, $digit_count );
 			$code_point = intval( $digits, $numeric_base );
 
 			if (
@@ -129,7 +130,18 @@ class WP_HTML_Decoder {
 				// Surrogate.
 				( $code_point >= 0xD800 && $code_point <= 0xDFFF ) ||
 
-				// Noncharacters.
+				/*
+				 * Noncharacters.
+				 *
+				 * > A noncharacter is a code point that is in the range U+FDD0 to U+FDEF,
+				 * > inclusive, or U+FFFE, U+FFFF, U+1FFFE, U+1FFFF, U+2FFFE, U+2FFFF,
+				 * > U+3FFFE, U+3FFFF, U+4FFFE, U+4FFFF, U+5FFFE, U+5FFFF, U+6FFFE,
+				 * > U+6FFFF, U+7FFFE, U+7FFFF, U+8FFFE, U+8FFFF, U+9FFFE, U+9FFFF,
+				 * > U+AFFFE, U+AFFFF, U+BFFFE, U+BFFFF, U+CFFFE, U+CFFFF, U+DFFFE,
+				 * > U+DFFFF, U+EFFFE, U+EFFFF, U+FFFFE, U+FFFFF, U+10FFFE, or U+10FFFF.
+				 *
+				 * @see https://infra.spec.whatwg.org/#noncharacter
+				 */
 				( $code_point >= 0xFDD0 && $code_point <= 0xFDEF ) ||
 				( 0xFFFE === ( $code_point & 0xFFFE ) ) ||
 
@@ -204,22 +216,18 @@ class WP_HTML_Decoder {
 			return null;
 		}
 
-		// Advance past the `&`.
-		++$name_at;
-
-		$name = $html5_named_character_entity_set->read_token( $text, $name_at );
+		$name = $html5_named_character_entity_set->read_token( $text, $name_at, $name_length );
 		if ( false === $name ) {
 			return null;
 		}
 
-		$name_length = strlen( $name );
-		$after_name  = $name_at + $name_length;
+		$after_name = $name_at + $name_length;
 
 		// If we have an un-ambiguous ampersand we can safely leave it in.
-		if ( ';' === $name[ $name_length - 1 ] ) {
+		if ( ';' === $text[ $name_at + $name_length - 1 ] ) {
 			$skip_bytes = $after_name - $at;
 			// @todo bring back the WP_Token_Map so we can decode these.
-			return html_entity_decode( "&{$name}" );
+			return $name;
 		}
 
 		/*
@@ -240,7 +248,7 @@ class WP_HTML_Decoder {
 		if ( ! $ambiguous_follower ) {
 			$skip_bytes = $after_name - $at;
 			// @todo Bring back WP_Token_Map to replace properly.
-			return html_entity_decode( "&{$name};" );
+			return $name;
 		}
 
 		if ( ! $allow_ambiguous_ampersand ) {
@@ -248,7 +256,7 @@ class WP_HTML_Decoder {
 		}
 
 		$skip_bytes = $after_name - $at;
-		return html_entity_decode( "&{$name};" );
+		return $name;
 	}
 
 	public static function code_point_to_utf8_bytes( $code_point ) {
