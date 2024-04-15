@@ -223,6 +223,8 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	/** @var ?WP_HTML_Token context node if created as a fragment parser. */
 	private $context_node = null;
 
+	private $has_seen_context_node = false;
+
 	/*
 	 * Public Interface Functions
 	 */
@@ -471,9 +473,6 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	 * @return bool
 	 */
 	public function next_token() {
-		static $has_seen_context_node = false;
-
-		next:
 		$this->current_element = null;
 
 		if ( 0 === count( $this->element_queue ) && ! $this->step() ) {
@@ -483,12 +482,14 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 		}
 
 		$this->current_element = array_shift( $this->element_queue );
-		if ( isset( $this->current_element, $this->context_node ) && ! $has_seen_context_node ) {
-			if ( $this->context_node === $this->current_element->token && 'open' === $this->current_element->operation ) {
-				$has_seen_context_node = true;
+		while ( isset( $this->context_node ) && ! $this->has_seen_context_node ) {
+			if ( isset( $this->current_element ) ) {
+				if ( $this->context_node === $this->current_element->token && 'open' === $this->current_element->operation ) {
+					$this->has_seen_context_node = true;
+					return $this->next_token();
+				}
 			}
-
-			goto next;
+			$this->current_element = array_shift( $this->element_queue );
 		}
 		return null !== $this->current_element;
 	}
@@ -1444,6 +1445,8 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 			parent::seek( 'context-node' );
 			$this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_IN_BODY;
 			$this->state->frameset_ok    = true;
+			$this->element_queue         = array();
+			$this->current_element       = null;
 		}
 
 		// When moving forwards, reparse the document until reaching the same location as the original bookmark.
