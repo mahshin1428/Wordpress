@@ -1350,6 +1350,17 @@ class WP_HTML_Processor extends WP_HTML_Tag_Processor {
 	}
 
 	/**
+	 * Return how deep the currently-matched element is in the HTML document.
+	 *
+	 * @since 6.6.0
+	 *
+	 * @return int
+	 */
+	public function get_depth() {
+		return $this->state->stack_of_open_elements->count();
+	}
+
+	/**
 	 * Removes a bookmark that is no longer needed.
 	 *
 	 * Releasing a bookmark frees up the small
