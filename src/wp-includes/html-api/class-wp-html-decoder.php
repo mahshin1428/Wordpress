@@ -5,7 +5,7 @@ class WP_HTML_Decoder {
 		$length = strlen( $search_text );
 		$at     = 0;
 		$i      = 0;
-		while ( $i < $length ) {
+		while ( $i < $length && $at < strlen( $attribute_value ) ) {
 			$chars_match   = $attribute_value[ $at ] === $search_text[ $i ];
 			$is_introducer = '&' === $attribute_value[ $at ];
 			$next_chunk    = $is_introducer
