@@ -66,8 +66,8 @@ class WP_Token_Map {
 		// Finally construct the optimized lookups.
 
 		foreach ( $shorts as $word ) {
-			$map->small_words     .= str_pad( $word, $key_length, "\x00" );
-			$map->small_mappings[] = $mapping;
+			$map->small_words     .= str_pad( $word, $key_length + 1, "\x00", STR_PAD_RIGHT );
+			$map->small_mappings[] = $mappings[ $word ];
 		}
 
 		foreach ( $groups as $group => $group_words ) {
@@ -98,12 +98,12 @@ class WP_Token_Map {
 
 	public function contains( $word ) {
 		if ( $this->key_length >= strlen( $word ) ) {
-			$word_at = strpos( $this->small_words, str_pad( $word, $this->key_length, "\x00" ) );
+			$word_at = strpos( $this->small_words, str_pad( $word, $this->key_length + 1, "\x00" ), STR_PAD_RIGHT );
 			if ( false === $word_at ) {
 				return false;
 			}
 
-			return $this->small_mappings[ $word_at / $this->key_length ];
+			return $this->small_mappings[ $word_at / ( $this->key_length + 1 ) ];
 		}
 
 		$group_key = substr( $word, 0, $this->key_length );
@@ -111,11 +111,13 @@ class WP_Token_Map {
 			return false;
 		}
 
-		$group  = $this->large_words[ $group_key ];
-		$slug   = substr( $word, $this->key_length );
-		$length = strlen( $slug );
-		$at     = 0;
-		while ( $at < strlen( $group ) ) {
+		$group        = $this->large_words[ $group_key ];
+		$group_length = strlen( $group );
+		$slug         = substr( $word, $this->key_length );
+		$length       = strlen( $slug );
+		$at           = 0;
+
+		while ( $at < $group_length ) {
 			$token_length   = unpack( 'C', $group[ $at++ ] )[1];
 			$token_at       = $at;
 			$at            += $token_length;
@@ -136,11 +138,20 @@ class WP_Token_Map {
 		$text_length = strlen( $text );
 
 		// Search for a long word first, if the text is long enough, and if that fails, a short one.
-		if ( $this->key_length < $text_length ) {
+		if ( $text_length > $this->key_length ) {
 			$group_key = substr( $text, $offset, $this->key_length );
 
 			if ( ! isset( $this->large_words[ $group_key ] ) ) {
-				return false;
+				// Perhaps a short word then.
+				$small_text = str_pad( substr( $text, $offset, $this->key_length ), $this->key_length + 1, "\x00", STR_PAD_RIGHT );
+				$at         = strpos( $this->small_words, $small_text );
+
+				if ( false === $at ) {
+					return false;
+				}
+
+				$skip_bytes = strlen( trim( $small_text, "\x00" ) );
+				return $this->small_mappings[ $at / ( $this->key_length + 1 ) ];
 			}
 
 			$group        = $this->large_words[ $group_key ];
@@ -163,7 +174,7 @@ class WP_Token_Map {
 		}
 
 		// Perhaps a short word then.
-		$small_text = str_pad( substr( $text, $offset, $this->key_length ), $this->key_length, "\x00" );
+		$small_text = str_pad( substr( $text, $offset, $this->key_length ), $this->key_length + 1, "\x00", STR_PAD_RIGHT );
 		$at         = strpos( $this->small_words, $small_text );
 
 		if ( false === $at ) {
@@ -171,7 +182,7 @@ class WP_Token_Map {
 		}
 
 		$skip_bytes = strlen( trim( $small_text, "\x00" ) );
-		return $this->small_mappings[ $at / $this->key_length ];
+		return $this->small_mappings[ $at / ( $this->key_length + 1 ) ];
 	}
 
 	public function to_array() {
@@ -179,14 +190,15 @@ class WP_Token_Map {
 
 		$at            = 0;
 		$small_mapping = 0;
-		while ( $at < strlen( $this->small_words ) ) {
+		$small_length  = strlen( $this->small_words );
+		while ( $at < $small_length ) {
 			$token = array();
 
-			$token[]  = rtrim( substr( $this->small_words, $at, $this->key_length ), "\x00" );
+			$token[]  = rtrim( substr( $this->small_words, $at, $this->key_length + 1 ), "\x00" );
 			$token[]  = $this->small_mappings[ $small_mapping++ ];
 			$tokens[] = $token;
 
-			$at += $this->key_length;
+			$at += $this->key_length + 1;
 		}
 
 		foreach ( $this->large_words as $prefix => $group ) {
@@ -236,10 +248,17 @@ class WP_Token_Map {
 				$mapping_digits = str_pad( dechex( $mapping_length ), 2, '0', STR_PAD_LEFT );
 
 				$mapping = preg_replace_callback(
-					"~[\x00-\x1f\"]~",
+					"~[\\x00-\\x1f\\x22\\x27\\x5c]~",
 					static function ( $match ) {
-						if ( '"' === $match[0] ) {
-							return '\\"';
+						switch ( $match[0] ) {
+							case '"':
+								return '\\"';
+
+							case "'":
+								return "\\'";
+
+							case '\\':
+								return '\\\\';
 						}
 						$hex = dechex( ord( $match[0] ) );
 						return "\\x{$hex}";
@@ -250,7 +269,7 @@ class WP_Token_Map {
 				$comment_line .= " {$prefix}{$token}[{$mapping}]";
 				$data_line    .= "\\x{$token_digits}{$token}\\x{$mapping_digits}{$mapping}";
 			}
-			$comment_line .= "\n";
+			$comment_line .= ".\n";
 			$data_line    .= "\",\n";
 
 			$output .= $comment_line;
@@ -259,13 +278,13 @@ class WP_Token_Map {
 
 		$output .= "{$i1}),\n";
 
-		$small_words   = array();
-		$at            = 0;
-		while ( $at < strlen( $this->small_words ) ) {
-			$small_words[] = substr( $this->small_words, $at, $this->key_length );
-			$at           += $this->key_length;
+		$small_words  = array();
+		$small_length = strlen( $this->small_words );
+		$at           = 0;
+		while ( $at < $small_length ) {
+			$small_words[] = substr( $this->small_words, $at, $this->key_length + 1 );
+			$at           += $this->key_length + 1;
 		}
-//		sort( $small_words );
 
 		$small_text = str_replace( "\x00", '\x00', implode( '', $small_words ) );
 		$output    .= "{$i1}\"{$small_text}\",\n";
@@ -275,8 +294,7 @@ class WP_Token_Map {
 			$output .= "{$i2}\"{$mapping}\",\n";
 		}
 		$output .= "{$i1})\n";
-
-		$output    .= ");\n";
+		$output .= ");\n";
 
 		return $output;
 	}

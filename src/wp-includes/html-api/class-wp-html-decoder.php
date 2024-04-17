@@ -1,6 +1,38 @@
 <?php
 
 class WP_HTML_Decoder {
+	public static function attribute_starts_with( $attribute_value, $search_text ) {
+		$length = strlen( $search_text );
+		$at     = 0;
+		$i      = 0;
+		while ( $i < $length ) {
+			$chars_match   = $attribute_value[ $at ] === $search_text[ $i ];
+			$is_introducer = '&' === $attribute_value[ $at ];
+			$next_chunk    = $is_introducer
+				? self::read_character_reference( $attribute_value, $at, false, $skip_bytes )
+				: false;
+
+			if ( false === $next_chunk && ! $chars_match ) {
+				return false;
+			}
+
+			if ( false === $next_chunk && $chars_match ) {
+				++$at;
+				++$i;
+				continue;
+			}
+
+			if ( 0 !== substr_compare( $search_text, $next_chunk, $i, strlen( $next_chunk ) ) ) {
+				return false;
+			}
+
+			$at += $skip_bytes;
+			$i  += strlen( $next_chunk );
+		}
+
+		return true;
+	}
+
 	public static function decode_normal_text_node( $text, $at = 0, $length = null ) {
 		$decoded = '';
 		$end     = isset( $length ) ? $at + $length : strlen( $text );
@@ -68,6 +100,10 @@ class WP_HTML_Decoder {
 
 		$length = strlen( $text );
 		if ( $at + 1 >= $length ) {
+			return null;
+		}
+
+		if ( '&' !== $text[ $at ] ) {
 			return null;
 		}
 
@@ -210,7 +246,7 @@ class WP_HTML_Decoder {
 		}
 
 		/** Tracks inner parsing within the named character reference. */
-		$name_at = $at;
+		$name_at = $at + 1;
 		// Minimum named character reference is three characters. E.g. `&GT`.
 		if ( $name_at + 3 > $length ) {
 			return null;
