@@ -144,8 +144,13 @@ class WP_HTML_Decoder {
 			$end_of_span   = $has_semicolon ? $after_digits + 1 : $after_digits;
 
 			// `&#` or `&#x` without digits returns into plaintext.
-			if ( 0 === $digit_count ) {
+			if ( 0 === $digit_count && 0 === $zero_count ) {
 				return null;
+			}
+
+			if ( 0 === $digit_count ) {
+				$skip_bytes = $end_of_span - $at;
+				return '�';
 			}
 
 			if ( $digit_count - $zero_count > $max_digits ) {
@@ -164,8 +169,13 @@ class WP_HTML_Decoder {
 				$code_point > 0x10FFFF ||
 
 				// Surrogate.
-				( $code_point >= 0xD800 && $code_point <= 0xDFFF ) ||
+				( $code_point >= 0xD800 && $code_point <= 0xDFFF )
+			) {
+				$skip_bytes = $end_of_span - $at;
+				return '�';
+			}
 
+			if (
 				/*
 				 * Noncharacters.
 				 *
@@ -192,8 +202,7 @@ class WP_HTML_Decoder {
 					0xD !== $code_point
 				)
 			) {
-				$skip_bytes = $end_of_span - $at;
-				return '�';
+				// @todo This is an error but the code point passes through.
 			}
 
 			/*
@@ -247,8 +256,8 @@ class WP_HTML_Decoder {
 
 		/** Tracks inner parsing within the named character reference. */
 		$name_at = $at + 1;
-		// Minimum named character reference is three characters. E.g. `&GT`.
-		if ( $name_at + 3 > $length ) {
+		// Minimum named character reference is two characters. E.g. `GT`.
+		if ( $name_at + 2 > $length ) {
 			return null;
 		}
 
