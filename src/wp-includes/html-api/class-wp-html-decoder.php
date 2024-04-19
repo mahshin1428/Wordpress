@@ -1,12 +1,24 @@
 <?php
 
+/**
+ * HTML API: WP_HTML_Decoder class
+ *
+ * Decodes spans of raw text found inside HTML content.
+ *
+ * @package WordPress
+ * @subpackage HTML-API
+ * @since 6.6.0
+ */
 class WP_HTML_Decoder {
-	public static function attribute_starts_with( $attribute_value, $search_text ) {
+	public static function attribute_starts_with( $attribute_value, $search_text, $case_sensitivity ) {
 		$length = strlen( $search_text );
 		$at     = 0;
 		$i      = 0;
 		while ( $i < $length && $at < strlen( $attribute_value ) ) {
-			$chars_match   = $attribute_value[ $at ] === $search_text[ $i ];
+			$chars_match = $case_sensitivity === 'case-insensitive'
+				? strtolower( $attribute_value[ $at ] ) === strtolower( $search_text[ $i ] )
+				: $attribute_value[ $at ] === $search_text[ $i ];
+
 			$is_introducer = '&' === $attribute_value[ $at ];
 			$next_chunk    = $is_introducer
 				? self::read_character_reference( $attribute_value, $at, false, $skip_bytes )
@@ -22,7 +34,7 @@ class WP_HTML_Decoder {
 				continue;
 			}
 
-			if ( 0 !== substr_compare( $search_text, $next_chunk, $i, strlen( $next_chunk ) ) ) {
+			if ( 0 !== substr_compare( $search_text, $next_chunk, $i, strlen( $next_chunk ), $case_sensitivity === 'case-insensitive' ) ) {
 				return false;
 			}
 
