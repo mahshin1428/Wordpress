@@ -2542,6 +2542,8 @@ class WP_Query {
 				$post_type_where = " AND {$wpdb->posts}.post_type IN ('" . implode( "', '", array_map( 'esc_sql', $in_search_post_types ) ) . "')";
 			}
 		} elseif ( ! empty( $post_type ) && is_array( $post_type ) ) {
+			// Sort post types to ensure same cache key generation.
+			sort( $post_type );
 			$post_type_where = " AND {$wpdb->posts}.post_type IN ('" . implode( "', '", esc_sql( $post_type ) ) . "')";
 		} elseif ( ! empty( $post_type ) ) {
 			$post_type_where  = $wpdb->prepare( " AND {$wpdb->posts}.post_type = %s", $post_type );
@@ -4856,6 +4858,24 @@ class WP_Query {
 			$args['suppress_filters']
 		);
 
+		if ( empty( $args['post_type'] ) ) {
+			if ( $this->is_attachment ) {
+				$args['post_type'] = 'attachment';
+			} elseif ( $this->is_page ) {
+				$args['post_type'] = 'page';
+			} else {
+				$args['post_type'] = 'post';
+			}
+		}
+		$args['post_type'] = (array) $args['post_type'];
+		// Sort post types to ensure same cache key generation.
+		sort( $args['post_type'] );
+
+		// Add a default orderby value of date to ensure same cache key generation.
+		if ( ! isset( $q['orderby'] ) ) {
+			$args['orderby'] = 'date';
+		}
+
 		$placeholder = $wpdb->placeholder_escape();
 		array_walk_recursive(
 			$args,
@@ -4873,6 +4893,8 @@ class WP_Query {
 				}
 			}
 		);
+
+		ksort( $args );
 
 		// Replace wpdb placeholder in the SQL statement used by the cache key.
 		$sql = $wpdb->remove_placeholder_escape( $sql );
